@@ -256,8 +256,8 @@ and this portfolio is my dedicated space to share how I see the world with you.`
 
   // ── Contact Info ──────────────────────────────────────────
   contact: {
-    email: "hello@anshphotography.com",
-    phone: "+91 98765 43210",
+    email: "lowanshiansh@gmail.com",
+    phone: "+91 7828479491",
     location: "Mumbai, India",
     socials: {
       instagram: "#",
