@@ -14,7 +14,7 @@ const DB = {
 Whether it's the golden-hour glow of a quiet landscape or the raw emotion of a candid portrait, 
 I am constantly exploring new ways to tell visual stories. Every photograph reflects a unique perspective, 
 and this portfolio is my dedicated space to share how I see the world with you.`,
-    portrait: "https://picsum.photos/seed/photographer/600/750",
+    portrait: "/assets/ansh_1.jpg",
     stats: [
       { label: "Months Learning", value: "6+" },
       { label: "Photos Taken", value: "2K+" },
@@ -26,89 +26,138 @@ and this portfolio is my dedicated space to share how I see the world with you.`
   // ── Photo Categories ──────────────────────────────────────
   categories: ["All", "Portraits", "Landscapes", "Street", "Events", "Wildlife"],
 
-  // ── Photo Gallery ─────────────────────────────────────────
-  // Each photo: { id, src, title, category, description, featured }
+  // ── Photo & Video Gallery ──────────────────────────────────
+  // Each item: { id, src, thumb, title, category, description, featured, media_type, media_items }
   photos: [
     {
       id: 1,
       src: "https://picsum.photos/seed/port1/800/1200",
       thumb: "https://picsum.photos/seed/port1/400/600",
-      title: "Golden Hour Portrait",
+      title: "Golden Hour Portrait Series",
       category: "Portraits",
-      description: "Natural light portrait during the magic hour.",
-      featured: true
+      description: "Natural light portrait set captured during the magic hour with warm amber tones.",
+      featured: true,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/port1/800/1200", media_type: "image" },
+        { url: "https://picsum.photos/seed/port1b/800/1200", media_type: "image" },
+        { url: "https://picsum.photos/seed/port1c/800/1200", media_type: "image" }
+      ]
     },
     {
       id: 2,
       src: "https://picsum.photos/seed/land1/1200/800",
       thumb: "https://picsum.photos/seed/land1/600/400",
-      title: "Misty Mountains",
+      title: "Misty Mountains Landscape",
       category: "Landscapes",
       description: "Early morning mist rolling through the valley.",
-      featured: true
+      featured: true,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/land1/1200/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/land1b/1200/800", media_type: "image" }
+      ]
     },
     {
       id: 3,
       src: "https://picsum.photos/seed/street1/800/1000",
       thumb: "https://picsum.photos/seed/street1/400/500",
-      title: "City Lights",
+      title: "Cinematic City Vibes",
       category: "Street",
-      description: "Urban nightscape with neon reflections.",
-      featured: false
+      description: "Atmospheric street video and stills showcasing neon reflections.",
+      featured: false,
+      media_type: "video",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4",
+      media_items: [
+        { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4", media_type: "video", poster: "https://picsum.photos/seed/street1/800/1000" },
+        { url: "https://picsum.photos/seed/street1/800/1000", media_type: "image" },
+        { url: "https://picsum.photos/seed/street1b/800/1000", media_type: "image" }
+      ]
     },
     {
       id: 4,
       src: "https://picsum.photos/seed/event1/1200/800",
       thumb: "https://picsum.photos/seed/event1/600/400",
-      title: "Wedding Bliss",
+      title: "Wedding Bliss Carousel",
       category: "Events",
-      description: "A candid moment of joy during the ceremony.",
-      featured: true
+      description: "Candid moments of joy, emotion, and celebration during the ceremony.",
+      featured: true,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/event1/1200/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/event1b/1200/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/event1c/1200/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/event1d/1200/800", media_type: "image" }
+      ]
     },
     {
       id: 5,
       src: "https://picsum.photos/seed/wild1/1000/800",
       thumb: "https://picsum.photos/seed/wild1/500/400",
-      title: "Majestic Eagle",
+      title: "Majestic Eagle in Flight",
       category: "Wildlife",
-      description: "Bald eagle soaring above the river.",
-      featured: false
+      description: "Bald eagle soaring above the river in crisp detail.",
+      featured: false,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/wild1/1000/800", media_type: "image" }
+      ]
     },
     {
       id: 6,
       src: "https://picsum.photos/seed/port2/800/1100",
       thumb: "https://picsum.photos/seed/port2/400/550",
-      title: "Studio Elegance",
+      title: "Studio Lighting Showcase",
       category: "Portraits",
-      description: "Dramatic studio lighting with a classic feel.",
-      featured: false
+      description: "Behind the scenes video & high-fashion studio portraits.",
+      featured: false,
+      media_type: "video",
+      videoUrl: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4",
+      media_items: [
+        { url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4", media_type: "video", poster: "https://picsum.photos/seed/port2/800/1100" },
+        { url: "https://picsum.photos/seed/port2/800/1100", media_type: "image" }
+      ]
     },
     {
       id: 7,
       src: "https://picsum.photos/seed/land2/1200/800",
       thumb: "https://picsum.photos/seed/land2/600/400",
-      title: "Autumn Forest",
+      title: "Autumn Forest Collection",
       category: "Landscapes",
-      description: "Fall colors blanketing the hillside.",
-      featured: true
+      description: "Fall colors blanketing the hillside in rich ochre and scarlet.",
+      featured: true,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/land2/1200/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/land2b/1200/800", media_type: "image" }
+      ]
     },
     {
       id: 8,
       src: "https://picsum.photos/seed/street2/800/1200",
       thumb: "https://picsum.photos/seed/street2/400/600",
-      title: "Rainy Alley",
+      title: "Rainy Alley Reflections",
       category: "Street",
-      description: "Reflections on wet cobblestone streets.",
-      featured: false
+      description: "Reflections on wet cobblestone streets under umbrella canopies.",
+      featured: false,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/street2/800/1200", media_type: "image" }
+      ]
     },
     {
       id: 9,
       src: "https://picsum.photos/seed/event2/1000/800",
       thumb: "https://picsum.photos/seed/event2/500/400",
-      title: "Concert Energy",
+      title: "Live Concert Momentum",
       category: "Events",
-      description: "Live music performance captured in motion.",
-      featured: false
+      description: "Live concert performance captured in motion with crowd energy.",
+      featured: false,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/event2/1000/800", media_type: "image" },
+        { url: "https://picsum.photos/seed/event2b/1000/800", media_type: "image" }
+      ]
     },
     {
       id: 10,
@@ -116,62 +165,40 @@ and this portfolio is my dedicated space to share how I see the world with you.`
       thumb: "https://picsum.photos/seed/wild2/600/450",
       title: "Deer at Dawn",
       category: "Wildlife",
-      description: "A deer pausing in the early morning light.",
-      featured: true
+      description: "A deer pausing in the early morning amber light.",
+      featured: true,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/wild2/1200/900", media_type: "image" }
+      ]
     },
     {
       id: 11,
       src: "https://picsum.photos/seed/port3/800/1000",
       thumb: "https://picsum.photos/seed/port3/400/500",
-      title: "Candid Smile",
+      title: "Candid Emotion Series",
       category: "Portraits",
-      description: "An unposed, genuine moment of happiness.",
-      featured: false
+      description: "An unposed, genuine sequence of happiness.",
+      featured: false,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/port3/800/1000", media_type: "image" },
+        { url: "https://picsum.photos/seed/port3b/800/1000", media_type: "image" },
+        { url: "https://picsum.photos/seed/port3c/800/1000", media_type: "image" }
+      ]
     },
     {
       id: 12,
       src: "https://picsum.photos/seed/land3/1200/800",
       thumb: "https://picsum.photos/seed/land3/600/400",
-      title: "Ocean Sunset",
+      title: "Ocean Sunset Horizon",
       category: "Landscapes",
-      description: "The sun melting into the Pacific horizon.",
-      featured: false
-    },
-    {
-      id: 13,
-      src: "https://picsum.photos/seed/street3/900/1200",
-      thumb: "https://picsum.photos/seed/street3/450/600",
-      title: "Morning Commute",
-      category: "Street",
-      description: "Rush hour captured in long exposure.",
-      featured: true
-    },
-    {
-      id: 14,
-      src: "https://picsum.photos/seed/wild3/1100/800",
-      thumb: "https://picsum.photos/seed/wild3/550/400",
-      title: "Fox in Snow",
-      category: "Wildlife",
-      description: "A red fox against a pristine white backdrop.",
-      featured: false
-    },
-    {
-      id: 15,
-      src: "https://picsum.photos/seed/event3/1200/800",
-      thumb: "https://picsum.photos/seed/event3/600/400",
-      title: "Birthday Celebration",
-      category: "Events",
-      description: "Pure joy in every frame of the celebration.",
-      featured: false
-    },
-    {
-      id: 16,
-      src: "https://picsum.photos/seed/port4/800/1100",
-      thumb: "https://picsum.photos/seed/port4/400/550",
-      title: "Silhouette",
-      category: "Portraits",
-      description: "A powerful silhouette against the sunset.",
-      featured: false
+      description: "The sun melting into the Pacific horizon with pastel skies.",
+      featured: false,
+      media_type: "image",
+      media_items: [
+        { url: "https://picsum.photos/seed/land3/1200/800", media_type: "image" }
+      ]
     }
   ],
 

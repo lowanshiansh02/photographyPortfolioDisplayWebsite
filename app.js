@@ -1,7 +1,7 @@
 // ============================================================
 // app.js — Photography Portfolio Application Logic
 // Renders all sections from DB data, handles gallery filtering,
-// lightbox, navigation, and scroll animations.
+// multi-image carousels, video playback, lightbox, navigation, and scroll animations.
 // ============================================================
 
 (function () {
@@ -14,57 +14,54 @@
   // ── State ────────────────────────────────────────────────
   let currentFilter = 'All';
   let lightboxIndex = 0;
+  let lightboxSlideIndex = 0;
   let filteredPhotos = [...DB.photos];
+  const cardSlideIndices = {}; // map of photo.id -> current active slide index
 
   const PHOTOS_PER_PAGE = 10;
   let visiblePhotosCount = PHOTOS_PER_PAGE;
 
-  // ── Supabase Integration ─────────────────────────────────
-  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-  const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  
-  // Wait for the supabase global from the CDN
-  const supabase = window.supabase ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
+  // ── API Integration ──────────────────────────────────────
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  async function fetchDataFromSupabase() {
-    if (!supabase) {
-      console.warn("Supabase client not initialized.");
-      return;
-    }
-
+  async function fetchDataFromAPI() {
     try {
       // Fetch categories
-      const { data: catsData, error: catsError } = await supabase
-        .from('categories')
-        .select('*');
-      
-      if (catsError) throw catsError;
+      const catsRes = await fetch(`${API_URL}/categories`);
+      if (!catsRes.ok) throw new Error('Failed to fetch categories');
+      const catsData = await catsRes.json();
       
       if (catsData && catsData.length > 0) {
         DB.categories = ['All', ...catsData.map(c => c.name)];
       }
 
       // Fetch photos
-      const { data: photosData, error: photosError } = await supabase
-        .from('photos')
-        .select('*, categories(name)')
-        .order('created_at', { ascending: false });
-        
-      if (photosError) throw photosError;
+      const photosRes = await fetch(`${API_URL}/photos`);
+      if (!photosRes.ok) throw new Error('Failed to fetch photos');
+      const photosData = await photosRes.json();
       
       if (photosData && photosData.length > 0) {
-        DB.photos = photosData.map(p => ({
-          id: p.id,
-          src: p.cloudinary_url,
-          thumb: p.cloudinary_url,
-          title: p.title,
-          category: p.categories ? p.categories.name : 'Uncategorized',
-          description: p.description,
-          featured: p.featured
-        }));
+        DB.photos = photosData.map(p => {
+          const isVideo = p.media_type === 'video' || (p.cloudinary_url && (p.cloudinary_url.includes('/video/') || p.cloudinary_url.match(/\.(mp4|webm|mov)$/i)));
+          const mediaItems = Array.isArray(p.media_items) && p.media_items.length > 0
+            ? p.media_items
+            : [{ url: p.cloudinary_url, media_type: isVideo ? 'video' : 'image', public_id: p.cloudinary_public_id }];
+
+          return {
+            id: p.id,
+            src: p.cloudinary_url,
+            thumb: p.cloudinary_url,
+            title: p.title || 'Untitled',
+            category: p.categories ? p.categories.name : 'Uncategorized',
+            description: p.description || '',
+            featured: Boolean(p.featured),
+            media_type: isVideo ? 'video' : 'image',
+            media_items: mediaItems
+          };
+        });
       }
     } catch (err) {
-      console.error('Error fetching data from Supabase:', err);
+      console.error('Error fetching data from API:', err);
     }
   }
 
@@ -81,23 +78,44 @@
 
   function renderHeroBg() {
     const bg = $('#hero-bg');
-    if (!bg) return;
+    if (!bg || !DB.photos.length) return;
 
-    // We'll create 10 rows to ensure all corners are covered.
+    // Collect all unique non-video images across all items and their carousel media
+    const allImages = [];
+    DB.photos.forEach(p => {
+      if (p.media_items && p.media_items.length > 0) {
+        p.media_items.forEach(m => {
+          if (m.media_type !== 'video' && m.url) allImages.push(m.url);
+        });
+      }
+      if (p.src && p.media_type !== 'video') allImages.push(p.thumb || p.src);
+    });
+
+    const uniqueImages = [...new Set(allImages)];
+    const pool = uniqueImages.length > 0 ? uniqueImages : DB.photos.map(p => p.thumb || p.src);
+
     const rowCount = 10;
     let html = '<div class="diagonal-gallery">';
 
-    for (let i = 0; i < rowCount; i++) {
-      // Get a chunk of 5 photos for this row
-      const startIndex = (i * 3) % DB.photos.length;
-      const rowPhotos = [];
-      for (let j = 0; j < 5; j++) {
-        rowPhotos.push(DB.photos[(startIndex + j) % DB.photos.length]);
+    // Helper: Fisher-Yates shuffle
+    const shuffleArray = (arr) => {
+      const copy = [...arr];
+      for (let i = copy.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [copy[i], copy[j]] = [copy[j], copy[i]];
       }
+      return copy;
+    };
 
-      // Duplicate 4 times to create an extremely long seamless row
-      const rowContent = [...rowPhotos, ...rowPhotos, ...rowPhotos, ...rowPhotos].map(p => `
-        <div class="hero-photo"><img src="${p.thumb}" alt=""></div>
+    for (let i = 0; i < rowCount; i++) {
+      // Create a randomized pool for each row so adjacent items are randomized and not repeating in static locks
+      let rowPool = shuffleArray(pool);
+      while (rowPool.length < 6) {
+        rowPool = [...rowPool, ...shuffleArray(pool)];
+      }
+      const rowSlice = rowPool.slice(0, 6);
+      const rowContent = [...rowSlice, ...rowSlice, ...rowSlice].map(imgUrl => `
+        <div class="hero-photo"><img src="${imgUrl}" alt="" loading="lazy"></div>
       `).join('');
 
       const directionClass = i % 2 === 0 ? 'move-left' : 'move-right';
@@ -155,7 +173,7 @@
     container.innerHTML = `
       <div class="portfolio-stat">
         <span class="portfolio-stat-number">${totalPhotos}</span>
-        <span class="portfolio-stat-label">Photos</span>
+        <span class="portfolio-stat-label">Portfolio Items</span>
       </div>
       <div class="portfolio-stat-divider"></div>
       <div class="portfolio-stat">
@@ -187,6 +205,64 @@
       .join('');
   }
 
+  // Helper to check if media item is video
+  function isMediaVideo(media) {
+    if (!media) return false;
+    if (media.media_type === 'video') return true;
+    if (typeof media.url === 'string') {
+      return media.url.includes('/video/') || /\.(mp4|webm|mov|ogg|m4v)($|\?)/i.test(media.url);
+    }
+    return false;
+  }
+
+  // Smooth in-place card slide update (no DOM refresh, no full grid reload)
+  function updateCardSlideDOM(itemEl, photo, newSlideIdx) {
+    const mediaList = photo.media_items && photo.media_items.length > 0
+      ? photo.media_items
+      : [{ url: photo.src, media_type: photo.media_type || 'image' }];
+    const currentMedia = mediaList[newSlideIdx] || mediaList[0];
+    const isVideo = isMediaVideo(currentMedia) || photo.media_type === 'video';
+
+    // 1. Update Media Container
+    const mediaContainer = itemEl.querySelector('.gallery-media-container');
+    if (mediaContainer) {
+      if (isVideo) {
+        mediaContainer.innerHTML = `
+          <video class="gallery-card-video" src="${currentMedia.url}" autoplay muted loop playsinline preload="metadata" style="width: 100%; display: block; border-radius: var(--radius-sm);"></video>
+          <div class="video-play-indicator" title="Click to open full video">▶</div>
+        `;
+      } else {
+        mediaContainer.innerHTML = `
+          <img class="gallery-card-img" src="${currentMedia.url || photo.src}" alt="${photo.title}" loading="lazy">
+        `;
+      }
+    }
+
+    // 2. Update Carousel Badge
+    const carouselBadge = itemEl.querySelector('.gallery-carousel-badge');
+    if (carouselBadge) {
+      carouselBadge.textContent = `📷 ${newSlideIdx + 1}/${mediaList.length}`;
+    }
+
+    // 3. Update Video Badge
+    let videoBadge = itemEl.querySelector('.gallery-video-badge');
+    const badgesContainer = itemEl.querySelector('.gallery-badges-container');
+    if (isVideo && !videoBadge && badgesContainer) {
+      const vBadge = document.createElement('div');
+      vBadge.className = 'gallery-video-badge';
+      vBadge.textContent = '▶ Video';
+      badgesContainer.appendChild(vBadge);
+    } else if (!isVideo && videoBadge) {
+      videoBadge.remove();
+    }
+
+    // 4. Update Dots
+    const dots = itemEl.querySelectorAll('.gallery-card-dot');
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === newSlideIdx);
+    });
+  }
+
   function renderGallery() {
     const grid = $('#gallery-grid');
     const loadMoreContainer = $('#load-more-container');
@@ -198,22 +274,62 @@
     const photosToRender = filteredPhotos.slice(0, visiblePhotosCount);
 
     grid.innerHTML = photosToRender
-      .map((photo, i) => `
-        <div class="gallery-item" data-index="${i}" style="animation-delay: ${i * 0.05}s">
-          ${photo.featured ? '<div class="gallery-featured-badge">Featured</div>' : ''}
-          <img src="${photo.src}" alt="${photo.title}" loading="lazy">
-          <div class="gallery-item-info">
-            <span class="gallery-item-category">${photo.category}</span>
-            <span class="gallery-item-title">${photo.title}</span>
-            <span class="gallery-item-desc">${photo.description}</span>
+      .map((photo, i) => {
+        const currentSlideIdx = cardSlideIndices[photo.id] || 0;
+        const mediaList = photo.media_items && photo.media_items.length > 0
+          ? photo.media_items
+          : [{ url: photo.src, media_type: photo.media_type || 'image' }];
+        const currentMedia = mediaList[currentSlideIdx] || mediaList[0];
+        const isCurrentVideo = isMediaVideo(currentMedia) || photo.media_type === 'video';
+        const hasMultiple = mediaList.length > 1;
+
+        return `
+          <div class="gallery-item" data-index="${i}" data-photo-id="${photo.id}" style="animation-delay: ${i * 0.05}s">
+            <!-- Badges -->
+            <div class="gallery-badges-container">
+              ${photo.featured ? '<div class="gallery-featured-badge">Featured</div>' : ''}
+              ${isCurrentVideo ? '<div class="gallery-video-badge">▶ Video</div>' : ''}
+              ${hasMultiple ? `<div class="gallery-carousel-badge">📷 ${currentSlideIdx + 1}/${mediaList.length}</div>` : ''}
+            </div>
+
+            <!-- Media Preview (Autoplaying Video or Image) -->
+            <div class="gallery-media-container">
+              ${isCurrentVideo ? `
+                <video class="gallery-card-video" src="${currentMedia.url}" autoplay muted loop playsinline preload="metadata" style="width: 100%; display: block; border-radius: var(--radius-sm);"></video>
+                <div class="video-play-indicator" title="Click to open full video">▶</div>
+              ` : `
+                <img class="gallery-card-img" src="${currentMedia.url || photo.src}" alt="${photo.title}" loading="lazy">
+              `}
+            </div>
+
+            <!-- Inline Card Carousel Controls (if multiple media) -->
+            ${hasMultiple ? `
+              <div class="gallery-card-controls">
+                <button type="button" class="gallery-card-btn card-prev-btn" data-dir="-1" title="Previous image">‹</button>
+                <button type="button" class="gallery-card-btn card-next-btn" data-dir="1" title="Next image">›</button>
+              </div>
+              <div class="gallery-card-dots">
+                ${mediaList.map((_, dotIdx) => `
+                  <span class="gallery-card-dot ${dotIdx === currentSlideIdx ? 'active' : ''}"></span>
+                `).join('')}
+              </div>
+            ` : ''}
+
+            <!-- Overlay Info -->
+            <div class="gallery-item-info">
+              <span class="gallery-item-category">${photo.category}</span>
+              <span class="gallery-item-title">${photo.title}</span>
+              ${photo.description ? `<span class="gallery-item-desc">${photo.description}</span>` : ''}
+            </div>
           </div>
-        </div>
-      `)
+        `;
+      })
       .join('');
 
     if (visiblePhotosCount < filteredPhotos.length) {
-      loadMoreContainer.innerHTML = `<button class="load-more-btn" id="load-more-btn">Load More</button>`;
-      $('#load-more-btn').addEventListener('click', () => {
+      loadMoreContainer.innerHTML = `<button type="button" class="load-more-btn" id="load-more-btn">Load More</button>`;
+      $('#load-more-btn').addEventListener('click', (e) => {
+        e.preventDefault();
         visiblePhotosCount += PHOTOS_PER_PAGE;
         renderGallery();
       });
@@ -262,7 +378,7 @@
       <span class="section-label reveal">Get in Touch</span>
       <h2 class="section-title reveal reveal-delay-1">Let's Create<br>Something Beautiful</h2>
       <p class="reveal reveal-delay-2">Have a project in mind? I'd love to hear about it. 
-        Whether it's a wedding, portrait session, or commercial project — let's make it happen.</p>
+        Whether it's a wedding, portrait session, commercial film, or fine art — let's make it happen.</p>
       <div class="contact-details reveal reveal-delay-3">
         <div class="contact-detail">
           <div class="contact-detail-icon">📧</div>
@@ -296,44 +412,92 @@
   }
 
   // ============================================================
-  // LIGHTBOX
+  // LIGHTBOX (Multi-slide carousel & video player)
   // ============================================================
-  function openLightbox(index) {
+  function updateLightboxDOM() {
+    const photo = filteredPhotos[lightboxIndex];
+    if (!photo) return;
+
+    const mediaList = photo.media_items && photo.media_items.length > 0
+      ? photo.media_items
+      : [{ url: photo.src, media_type: photo.media_type || 'image' }];
+
+    // Bound slide index
+    if (lightboxSlideIndex < 0) lightboxSlideIndex = mediaList.length - 1;
+    if (lightboxSlideIndex >= mediaList.length) lightboxSlideIndex = 0;
+
+    const currentMedia = mediaList[lightboxSlideIndex] || mediaList[0];
+    const isVideo = currentMedia.media_type === 'video' || (currentMedia.url && currentMedia.url.match(/\.(mp4|webm|mov)$/i));
+
+    const mediaWrapper = $('#lightbox-media-wrapper');
+    if (isVideo) {
+      mediaWrapper.innerHTML = `
+        <video controls autoplay class="lightbox-video" src="${currentMedia.url}" style="max-width: 90vw; max-height: 75vh; border-radius: var(--radius-sm);"></video>
+      `;
+    } else {
+      mediaWrapper.innerHTML = `
+        <img id="lightbox-image" src="${currentMedia.url}" alt="${photo.title}">
+      `;
+    }
+
+    const counter = $('#lightbox-counter');
+    if (mediaList.length > 1) {
+      counter.style.display = 'inline-block';
+      counter.textContent = `Slide ${lightboxSlideIndex + 1} of ${mediaList.length} (Photo ${lightboxIndex + 1} of ${filteredPhotos.length})`;
+    } else {
+      counter.style.display = 'inline-block';
+      counter.textContent = `${lightboxIndex + 1} of ${filteredPhotos.length}`;
+    }
+
+    $('#lightbox-title').textContent = photo.title;
+    $('#lightbox-desc').textContent = photo.description || photo.category;
+  }
+
+  function openLightbox(index, slideIndex = 0) {
     lightboxIndex = index;
+    lightboxSlideIndex = slideIndex;
     const lightbox = $('#lightbox');
     const photo = filteredPhotos[index];
     if (!photo) return;
 
-    $('#lightbox-image').src = photo.src;
-    $('#lightbox-image').alt = photo.title;
-    $('#lightbox-title').textContent = photo.title;
-    $('#lightbox-desc').textContent = photo.description;
-
+    updateLightboxDOM();
     lightbox.classList.add('active');
     document.body.style.overflow = 'hidden';
   }
 
   function closeLightbox() {
-    $('#lightbox').classList.remove('active');
+    const lightbox = $('#lightbox');
+    lightbox.classList.remove('active');
     document.body.style.overflow = '';
+    // Pause any playing videos
+    const vid = lightbox.querySelector('video');
+    if (vid) vid.pause();
   }
 
   function navigateLightbox(dir) {
-    lightboxIndex = (lightboxIndex + dir + filteredPhotos.length) % filteredPhotos.length;
     const photo = filteredPhotos[lightboxIndex];
-    const img = $('#lightbox-image');
+    if (!photo) return;
 
-    img.style.opacity = '0';
-    img.style.transform = 'scale(0.95)';
+    const mediaList = photo.media_items && photo.media_items.length > 0
+      ? photo.media_items
+      : [{ url: photo.src, media_type: photo.media_type || 'image' }];
 
-    setTimeout(() => {
-      img.src = photo.src;
-      img.alt = photo.title;
-      $('#lightbox-title').textContent = photo.title;
-      $('#lightbox-desc').textContent = photo.description;
-      img.style.opacity = '1';
-      img.style.transform = 'scale(1)';
-    }, 200);
+    // If item has multiple slides, advance through the slides first
+    if (mediaList.length > 1) {
+      const nextSlide = lightboxSlideIndex + dir;
+      if (nextSlide >= 0 && nextSlide < mediaList.length) {
+        lightboxSlideIndex = nextSlide;
+        updateLightboxDOM();
+        return;
+      }
+    }
+
+    // Otherwise move to next/prev photo item
+    lightboxIndex = (lightboxIndex + dir + filteredPhotos.length) % filteredPhotos.length;
+    const nextPhoto = filteredPhotos[lightboxIndex];
+    const nextMediaList = nextPhoto.media_items || [];
+    lightboxSlideIndex = dir > 0 ? 0 : Math.max(0, nextMediaList.length - 1);
+    updateLightboxDOM();
   }
 
   // ============================================================
@@ -373,20 +537,53 @@
       renderGallery();
     });
 
-    // ── Gallery click → lightbox ──
+    // ── Gallery clicks (Card carousel buttons vs opening Lightbox) ──
     $('#gallery-grid').addEventListener('click', (e) => {
+      // Check if user clicked a card carousel previous/next button
+      const cardBtn = e.target.closest('.gallery-card-btn');
+      if (cardBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const dir = parseInt(cardBtn.dataset.dir, 10);
+        const item = cardBtn.closest('.gallery-item');
+        if (!item) return;
+        const photoId = item.dataset.photoId;
+        const photoIdx = parseInt(item.dataset.index, 10);
+        const photo = filteredPhotos[photoIdx];
+        if (photo && photo.media_items && photo.media_items.length > 1) {
+          const current = cardSlideIndices[photoId] || 0;
+          const total = photo.media_items.length;
+          const nextIdx = (current + dir + total) % total;
+          cardSlideIndices[photoId] = nextIdx;
+          updateCardSlideDOM(item, photo, nextIdx);
+        }
+        return;
+      }
+
+      // Check if user clicked the gallery item itself -> Open Lightbox
       const item = e.target.closest('.gallery-item');
       if (!item) return;
-      openLightbox(parseInt(item.dataset.index, 10));
+      const index = parseInt(item.dataset.index, 10);
+      const photoId = item.dataset.photoId;
+      const slideIdx = cardSlideIndices[photoId] || 0;
+      openLightbox(index, slideIdx);
     });
 
     // ── Lightbox controls ──
     $('.lightbox-close').addEventListener('click', closeLightbox);
-    $('.lightbox-prev').addEventListener('click', () => navigateLightbox(-1));
-    $('.lightbox-next').addEventListener('click', () => navigateLightbox(1));
+    $('.lightbox-prev').addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateLightbox(-1);
+    });
+    $('.lightbox-next').addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateLightbox(1);
+    });
 
     $('#lightbox').addEventListener('click', (e) => {
-      if (e.target === e.currentTarget) closeLightbox();
+      if (e.target === e.currentTarget || e.target.classList.contains('lightbox-content')) {
+        closeLightbox();
+      }
     });
 
     // ── Keyboard shortcuts ──
@@ -445,7 +642,7 @@
   // INITIALIZATION
   // ============================================================
   async function init() {
-    await fetchDataFromSupabase();
+    await fetchDataFromAPI();
 
     renderNavigation();
     renderHeroBg();
@@ -472,3 +669,4 @@
     init();
   }
 })();
+

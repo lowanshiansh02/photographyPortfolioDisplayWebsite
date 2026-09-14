@@ -182,8 +182,11 @@
     <button class="lightbox-close" aria-label="Close">✕</button>
     <button class="lightbox-nav lightbox-prev" aria-label="Previous">‹</button>
     <div class="lightbox-content">
-      <img id="lightbox-image" src="" alt="">
+      <div id="lightbox-media-wrapper">
+        <img id="lightbox-image" src="" alt="">
+      </div>
       <div class="lightbox-info">
+        <div id="lightbox-counter" class="lightbox-slide-counter" style="display: none;"></div>
         <h3 id="lightbox-title"></h3>
         <p id="lightbox-desc"></p>
       </div>
@@ -191,8 +194,8 @@
     <button class="lightbox-nav lightbox-next" aria-label="Next">›</button>
   </div>
 
-  <!-- Scripts: Supabase, DB mock overlay, then App -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- Scripts: DB mock overlay, then App -->
   <script src="db.js?v=4"></script>
   <script type="module" src="/app.js?v=4"></script>
 
