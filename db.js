@@ -14,7 +14,7 @@ const DB = {
 Whether it's the golden-hour glow of a quiet landscape or the raw emotion of a candid portrait, 
 I am constantly exploring new ways to tell visual stories. Every photograph reflects a unique perspective, 
 and this portfolio is my dedicated space to share how I see the world with you.`,
-    portrait: "/assets/ansh_1.jpg",
+    portrait: "/assets/ansh_1.jpg?v=2",
     stats: [
       { label: "Months Learning", value: "6+" },
       { label: "Photos Taken", value: "2K+" },
