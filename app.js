@@ -373,40 +373,46 @@
 
   function renderContact() {
     const info = $('#contact-info');
-    const { contact, profile } = DB;
+    if (!info) return;
+    const { contact } = DB;
+    const cleanPhone = (contact.phone || '').replace(/[^\d+]/g, '');
     info.innerHTML = `
-      <span class="section-label reveal">Get in Touch</span>
-      <h2 class="section-title reveal reveal-delay-1">Let's Create<br>Something Beautiful</h2>
-      <p class="reveal reveal-delay-2">Have a project in mind? I'd love to hear about it. 
-        Whether it's a wedding, portrait session, commercial film, or fine art — let's make it happen.</p>
+      <div class="contact-header">
+        <span class="section-label reveal">Get in Touch</span>
+        <h2 class="section-title reveal reveal-delay-1">Let's Create<br>Something Beautiful</h2>
+        <p class="section-subtitle reveal reveal-delay-2">Have a project in mind? I'd love to hear about it. 
+          Whether it's a wedding, portrait session, commercial film, or fine art — let's make it happen.</p>
+      </div>
       <div class="contact-details reveal reveal-delay-3">
-        <div class="contact-detail">
+        <a href="mailto:${contact.email}" class="contact-detail-card" title="Send Email">
           <div class="contact-detail-icon">📧</div>
-          <div>
+          <div class="contact-detail-content">
             <div class="contact-detail-label">Email</div>
             <div class="contact-detail-text">${contact.email}</div>
           </div>
-        </div>
-        <div class="contact-detail">
+        </a>
+        <a href="tel:${cleanPhone}" class="contact-detail-card" title="Call directly">
           <div class="contact-detail-icon">📱</div>
-          <div>
+          <div class="contact-detail-content">
             <div class="contact-detail-label">Phone</div>
             <div class="contact-detail-text">${contact.phone}</div>
           </div>
-        </div>
-        <div class="contact-detail">
+        </a>
+        <div class="contact-detail-card">
           <div class="contact-detail-icon">📍</div>
-          <div>
+          <div class="contact-detail-content">
             <div class="contact-detail-label">Location</div>
             <div class="contact-detail-text">${contact.location}</div>
           </div>
         </div>
       </div>
-      <div class="social-links reveal reveal-delay-4">
-        <a href="${contact.socials.instagram}" class="social-link" aria-label="Instagram">📷</a>
-        <a href="${contact.socials.facebook}" class="social-link" aria-label="Facebook">📘</a>
-        <a href="${contact.socials.twitter}" class="social-link" aria-label="Twitter">🐦</a>
-        <a href="${contact.socials.pinterest}" class="social-link" aria-label="Pinterest">📌</a>
+      <div class="social-links-wrap reveal reveal-delay-4">
+        <div class="social-links">
+          <a href="${contact.socials.instagram}" class="social-link" aria-label="Instagram">📷</a>
+          <a href="${contact.socials.facebook}" class="social-link" aria-label="Facebook">📘</a>
+          <a href="${contact.socials.twitter}" class="social-link" aria-label="Twitter">🐦</a>
+          <a href="${contact.socials.pinterest}" class="social-link" aria-label="Pinterest">📌</a>
+        </div>
       </div>
     `;
   }
@@ -594,18 +600,13 @@
       if (e.key === 'ArrowRight') navigateLightbox(1);
     });
 
-    // ── Contact form ──
-    $('#contact-form').addEventListener('submit', (e) => {
-      e.preventDefault();
-      const btn = e.target.querySelector('.btn-primary');
-      btn.textContent = '✓ Message Sent!';
-      btn.style.background = '#4CAF50';
-      setTimeout(() => {
-        btn.textContent = 'Send Message →';
-        btn.style.background = '';
-        e.target.reset();
-      }, 2500);
-    });
+    // ── Contact form (guarded) ──
+    const contactForm = $('#contact-form');
+    if (contactForm) {
+      contactForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+      });
+    }
 
     // ── Active nav link on scroll ──
     const sections = $$('section[id]');
